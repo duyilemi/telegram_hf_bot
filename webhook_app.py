@@ -7,7 +7,9 @@ import os
 import logging
 from fastapi import FastAPI, Request
 from telegram import Bot, Update
-from hf_client import query_hf  # async-compatible client
+import asyncio
+from hf_client import query_hf_sync
+
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -58,9 +60,8 @@ async def telegram_webhook(request: Request):
         prompt = update.message.text.strip()[:800]
 
         try:
-            # Wrap blocking call in thread to keep FastAPI async
-            import asyncio
-            reply = await asyncio.to_thread(query_hf, prompt)
+        # run blocking HF call in a thread so it doesn't block the event loop
+            reply = await asyncio.to_thread(query_hf_sync, prompt)
         except Exception as e:
             logger.exception("Error querying HF: %s", e)
             reply = "Sorry, I couldn't reach the model right now."
